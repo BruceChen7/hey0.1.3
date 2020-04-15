@@ -33,12 +33,14 @@ import (
 )
 
 const (
+	// 用来解析http头的正则
 	headerRegexp = `^([\w-]+):\s*(.+)`
 	authRegexp   = `^(.+):([^\s].+)`
 	heyUA        = "hey/0.0.1"
 )
 
 var (
+	// 返回的都是指针类型
 	m           = flag.String("m", "GET", "")
 	headers     = flag.String("h", "", "")
 	body        = flag.String("d", "", "")
@@ -56,13 +58,15 @@ var (
 	t = flag.Int("t", 20, "")
 	z = flag.Duration("z", 0, "")
 
-	h2   = flag.Bool("h2", false, "")
+	h2 = flag.Bool("h2", false, "")
+	// 获取最大的CPU数
 	cpus = flag.Int("cpus", runtime.GOMAXPROCS(-1), "")
 
 	disableCompression = flag.Bool("disable-compression", false, "")
 	disableKeepAlives  = flag.Bool("disable-keepalive", false, "")
 	disableRedirects   = flag.Bool("disable-redirects", false, "")
-	proxyAddr          = flag.String("x", "", "")
+	// 设置代理
+	proxyAddr = flag.String("x", "", "")
 )
 
 var usage = `Usage: hey [options...] <url>
@@ -102,11 +106,13 @@ Options:
 `
 
 func main() {
+	// 直接使用匿名函数，来表示usage
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(usage, runtime.NumCPU()))
 	}
 
 	var hs headerSlice
+	// flag.Var第一个参数是一个interface，用来表示动态参数
 	flag.Var(&hs, "H", "")
 
 	flag.Parse()
@@ -115,8 +121,11 @@ func main() {
 	}
 
 	runtime.GOMAXPROCS(*cpus)
+	// 设置负载
 	num := *n
+	// 同时并发的数量
 	conc := *c
+	//
 	q := *q
 	dur := *z
 
@@ -135,6 +144,7 @@ func main() {
 		}
 	}
 
+	// returns the non-flag command-line arguments
 	url := flag.Args()[0]
 	method := strings.ToUpper(*m)
 
@@ -151,6 +161,7 @@ func main() {
 		if err != nil {
 			usageAndExit(err.Error())
 		}
+		// 设置值和value
 		header.Set(match[1], match[2])
 	}
 
@@ -170,6 +181,7 @@ func main() {
 
 	var bodyAll []byte
 	if *body != "" {
+		// 复制一份body
 		bodyAll = []byte(*body)
 	}
 	if *bodyFile != "" {
@@ -193,7 +205,9 @@ func main() {
 	if err != nil {
 		usageAndExit(err.Error())
 	}
+	// 设置请求长度
 	req.ContentLength = int64(len(bodyAll))
+	// 设置基本的认证
 	if username != "" || password != "" {
 		req.SetBasicAuth(username, password)
 	}
@@ -202,7 +216,6 @@ func main() {
 	if *hostHeader != "" {
 		req.Host = *hostHeader
 	}
-
 	ua := req.UserAgent()
 	if ua == "" {
 		ua = heyUA
@@ -250,6 +263,7 @@ func errAndExit(msg string) {
 }
 
 func usageAndExit(msg string) {
+	// 先输出自定义消息
 	if msg != "" {
 		fmt.Fprintf(os.Stderr, msg)
 		fmt.Fprintf(os.Stderr, "\n\n")

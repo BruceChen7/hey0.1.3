@@ -1,5 +1,6 @@
 binary = hey
 
+# 用来构建三个平台的bin文件
 release:
 	GOOS=windows GOARCH=amd64 go build -o ./bin/$(binary)_windows_amd64
 	GOOS=linux GOARCH=amd64 go build -o ./bin/$(binary)_linux_amd64
