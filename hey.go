@@ -125,7 +125,7 @@ func main() {
 	num := *n
 	// 同时并发的数量
 	conc := *c
-	//
+	// 对于int类型的，这种是解引用
 	q := *q
 	dur := *z
 
@@ -145,6 +145,7 @@ func main() {
 	}
 
 	// returns the non-flag command-line arguments
+	// 第一个非flag的url
 	url := flag.Args()[0]
 	method := strings.ToUpper(*m)
 
@@ -195,19 +196,21 @@ func main() {
 	var proxyURL *gourl.URL
 	if *proxyAddr != "" {
 		var err error
+		// 解析代理服务器url
 		proxyURL, err = gourl.Parse(*proxyAddr)
 		if err != nil {
 			usageAndExit(err.Error())
 		}
 	}
 
+	// 第一次尝试发起请求
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		usageAndExit(err.Error())
 	}
-	// 设置请求长度
+	// 设置请求body长度
 	req.ContentLength = int64(len(bodyAll))
-	// 设置基本的认证
+	// 设置基本的鉴权方式
 	if username != "" || password != "" {
 		req.SetBasicAuth(username, password)
 	}
@@ -225,6 +228,7 @@ func main() {
 	header.Set("User-Agent", ua)
 	req.Header = header
 
+	// 定义一个worker
 	w := &requester.Work{
 		Request:            req,
 		RequestBody:        bodyAll,
@@ -243,6 +247,7 @@ func main() {
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
+	// 捕捉信号
 	go func() {
 		<-c
 		w.Stop()
@@ -253,6 +258,7 @@ func main() {
 			w.Stop()
 		}()
 	}
+	// 开始做benchMark
 	w.Run()
 }
 

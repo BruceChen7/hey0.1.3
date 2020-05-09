@@ -83,11 +83,14 @@ func newReport(w io.Writer, results chan *result, output string, n int) *report 
 
 func runReporter(r *report) {
 	// Loop will continue until channel is closed
+	// 从results channel中不断的读
 	for res := range r.results {
 		r.numRes++
 		if res.err != nil {
+			// 设置结果
 			r.errorDist[res.err.Error()]++
 		} else {
+			// 累计
 			r.avgTotal += res.duration.Seconds()
 			r.avgConn += res.connDuration.Seconds()
 			r.avgDelay += res.delayDuration.Seconds()
@@ -114,6 +117,7 @@ func runReporter(r *report) {
 }
 
 func (r *report) finalize(total time.Duration) {
+	// 计算平均值
 	r.total = total
 	r.rps = float64(r.numRes) / r.total.Seconds()
 	r.average = r.avgTotal / float64(len(r.lats))

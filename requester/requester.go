@@ -88,14 +88,17 @@ type Work struct {
 	// Writer is where results will be written. If nil, results are written to stdout.
 	Writer io.Writer
 
+	// 用来只做一次操作
 	initOnce sync.Once
-	results  chan *result
-	stopCh   chan struct{}
-	start    time.Duration
+	// 用来接收每个请求的结果
+	results chan *result
+	stopCh  chan struct{}
+	start   time.Duration
 
 	report *report
 }
 
+// 输出结果的位置
 func (b *Work) writer() io.Writer {
 	if b.Writer == nil {
 		return os.Stdout
@@ -107,6 +110,7 @@ func (b *Work) writer() io.Writer {
 func (b *Work) Init() {
 	b.initOnce.Do(func() {
 		b.results = make(chan *result, min(b.C*1000, maxResult))
+		// 初始化停止的channel
 		b.stopCh = make(chan struct{}, b.C)
 	})
 }
@@ -116,6 +120,7 @@ func (b *Work) Init() {
 func (b *Work) Run() {
 	b.Init()
 	b.start = now()
+	//  初始report
 	b.report = newReport(b.writer(), b.results, b.Output, b.N)
 	// Run the reporter first, it polls the result channel until it is closed.
 	go func() {
@@ -140,6 +145,7 @@ func (b *Work) Finish() {
 	b.report.finalize(total)
 }
 
+// 真正的开始执行一次请求
 func (b *Work) makeRequest(c *http.Client) {
 	s := now()
 	var size int64
@@ -183,6 +189,7 @@ func (b *Work) makeRequest(c *http.Client) {
 	t := now()
 	resDuration = t - resStart
 	finish := t - s
+	// 写进一个结果
 	b.results <- &result{
 		offset:        s,
 		statusCode:    code,
@@ -200,6 +207,7 @@ func (b *Work) makeRequest(c *http.Client) {
 func (b *Work) runWorker(client *http.Client, n int) {
 	var throttle <-chan time.Time
 	if b.QPS > 0 {
+		// 计算每个请求的最多能等待的时间
 		throttle = time.Tick(time.Duration(1e6/(b.QPS)) * time.Microsecond)
 	}
 
@@ -224,6 +232,8 @@ func (b *Work) runWorker(client *http.Client, n int) {
 
 func (b *Work) runWorkers() {
 	var wg sync.WaitGroup
+	// 控制并发的粒度
+	// 最多同时C个任务
 	wg.Add(b.C)
 
 	tr := &http.Transport{
@@ -236,6 +246,7 @@ func (b *Work) runWorkers() {
 		DisableKeepAlives:   b.DisableKeepAlives,
 		Proxy:               http.ProxyURL(b.ProxyAddr),
 	}
+	// 使用http2的请求
 	if b.H2 {
 		http2.ConfigureTransport(tr)
 	} else {
@@ -246,6 +257,8 @@ func (b *Work) runWorkers() {
 	// Ignore the case where b.N % b.C != 0.
 	for i := 0; i < b.C; i++ {
 		go func() {
+			// 并发的的执行
+			// 每个worker发送的请求数
 			b.runWorker(client, b.N/b.C)
 			wg.Done()
 		}()

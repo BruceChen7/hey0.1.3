@@ -73,6 +73,7 @@ func formatNumberInt(duration int) string {
 	return fmt.Sprintf("%d", duration)
 }
 
+// 计算直方图统计
 func histogram(buckets []Bucket) string {
 	max := 0
 	for _, b := range buckets {
